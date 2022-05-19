@@ -3,6 +3,7 @@
 #include<muduo/net/TcpServer.h>
 #include<muduo/net/EventLoop.h>
 #include<muduo/base/Logging.h>
+#include"ChatService.hpp"
 using namespace std;
 using namespace muduo;
 using namespace muduo::net;
@@ -66,7 +67,8 @@ void ChatServer::onConnection(const TcpConnectionPtr&conn)
 void ChatServer::onMessage(const TcpConnectionPtr&conn,Buffer*buffer,Timestamp time)
 {
   string buf=buffer->retrieveAllAsString();
-  cout<<buf<<endl;
-  cout<<"发送时间为："<<time.toString()<<endl;
-  conn->send(buf.c_str(),buf.size());
+  json js=json::parse(buf);
+  int msgid=js["msgid"].get<int>();
+  auto Handler=ChatService::GetInstance()->GetHandler(msgid);
+  Handler(conn,&js,time);
 }
