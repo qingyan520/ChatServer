@@ -27,7 +27,7 @@ class UserModel
     User query(int id)
     {
         char sql[1024]={0};
-        sprintf(sql,"select * from User where id=%d",id);
+        sprintf(sql,"select * from User where id=%d;",id);
         Mysql mysql;
         User user;
         if(mysql.Connect())
@@ -45,6 +45,23 @@ class UserModel
         }
         return user;
     }
+
+    bool updateState(User user)
+    {
+      char sql[1024]={0};
+      sprintf(sql,"update User set state='%s' where id=%d;",user.Getstate().c_str(),user.GetId());
+
+      Mysql mysql;
+      if(mysql.Connect())
+      {
+        if(mysql.Update(sql))
+        {
+          return true;
+        }
+      }
+      return false;
+    }
+
 
 
 };

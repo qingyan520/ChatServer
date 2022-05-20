@@ -3,11 +3,12 @@
 #include<muduo/net/TcpServer.h>
 #include<muduo/net/EventLoop.h>
 #include<muduo/base/Logging.h>
+#include"json.hpp"
 #include"ChatService.hpp"
 using namespace std;
 using namespace muduo;
 using namespace muduo::net;
-
+using json=nlohmann::json;
 class ChatServer
 {
   public:
@@ -68,6 +69,7 @@ void ChatServer::onMessage(const TcpConnectionPtr&conn,Buffer*buffer,Timestamp t
 {
   string buf=buffer->retrieveAllAsString();
   json js=json::parse(buf);
+  cout<<js["msgid"].get<int>()<<endl;
   int msgid=js["msgid"].get<int>();
   auto Handler=ChatService::GetInstance()->GetHandler(msgid);
   Handler(conn,&js,time);

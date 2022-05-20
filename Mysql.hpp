@@ -5,8 +5,8 @@
 using std::string;
 using namespace muduo;
 
-static string  user="chat";
-static string pwd="123456";
+static string  user="root";
+static string pwd="Ssxpb524";
 static string db="chat";
 
 class Mysql
@@ -16,6 +16,14 @@ class Mysql
     {
       _conn=mysql_init(nullptr);
     }
+
+    ~Mysql()
+    {
+      if(_conn!=nullptr)
+      {
+        mysql_close(_conn);
+      }
+    }
     
     bool Connect()
     {
@@ -24,6 +32,8 @@ class Mysql
         {
           return true;
         }
+        LOG_WARN<<"数据库连接出错！";
+        LOG_WARN<<mysql_error(_conn);
         return false;
     }
 
@@ -33,6 +43,7 @@ class Mysql
       if(mysql_query(_conn,sql.c_str()))
       {
         LOG_WARN<<__FILE__<<":"<<__LINE__<<":"<<sql<<": Update fail!";
+        LOG_WARN<<mysql_error(_conn);
         return false;
       }
       return true;
@@ -44,6 +55,7 @@ class Mysql
       if(mysql_query(_conn,sql.c_str()))
       {
         LOG_WARN<<__FILE__<<":"<<__LINE__<<":"<<sql<<": Query fail";
+        LOG_WARN<<mysql_error(_conn);
         return nullptr;
       }
       return mysql_use_result(_conn);
