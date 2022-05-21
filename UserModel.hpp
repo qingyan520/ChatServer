@@ -61,7 +61,23 @@ class UserModel
       }
       return false;
     }
-
+    
+    
+    bool updateAllState()
+    {
+      //退出前将所有人状态设置为offline
+        char sql[1024]="update User set state='offline'";
+        
+        Mysql mysql;
+        if(mysql.Connect())
+        {
+          if(mysql.Update(sql))
+          {
+            return true;
+          }
+        }
+        return false;
+    }
 
 
 };

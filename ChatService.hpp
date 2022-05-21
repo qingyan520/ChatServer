@@ -9,6 +9,7 @@
 #include<muduo/net/EventLoop.h>
 #include<muduo/base/Logging.h>
 #include"UserModel.hpp"
+#include"OfflineMsgModel.hpp"
 #include"json.hpp"
 #include"Public.hpp"
 using namespace std;
@@ -43,6 +44,9 @@ class ChatService
   //处理客户端异常退出
   void clientCloseException(const TcpConnectionPtr&conn);
 
+  //处理服务器异常退出情况
+  void reset();
+
   //得到每一个消息所对应的回调函数
   MsgHandler GetHandler(int msgid);
   private:
@@ -53,6 +57,7 @@ class ChatService
   unordered_map<int,MsgHandler>_HandlerMap;//记录每一个消息所对应的回调函数
 
   UserModel _userModel;//负责数据库的增删
+  OffMsgModel _offMsgModel;//负责离线消息的加入与删除
 
   unordered_map<int,TcpConnectionPtr>_userConnMap;//存储用户的连接信息
 
@@ -124,6 +129,15 @@ void ChatService::Login(const TcpConnectionPtr&conn,json*js,Timestamp time)
         response["errno"]=0;
         response["id"]=user.GetId();
         response["name"]=user.GetName();
+        
+        vector<string> msg=_offMsgModel.query(id);
+        if(!msg.empty())
+        {
+          //添加消息之后将其从离线消息表中删除
+          response["OfflineMsg"]=msg;
+          _offMsgModel.remove(id);
+        }
+
         conn->send(response.dump());
       }
   }
@@ -180,6 +194,7 @@ void ChatService::OneChat(const TcpConnectionPtr&conn,json*js,Timestamp time)
       return;
     }
   }
+  _offMsgModel.insert(toid,(*js).dump());
 }
 
 
@@ -208,3 +223,12 @@ void ChatService::clientCloseException(const TcpConnectionPtr&conn)
  }
   
 }
+
+
+
+//服务器异常退出问题
+void ChatService::reset()
+{
+    _userModel.updateAllState();
+}
+
