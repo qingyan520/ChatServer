@@ -52,14 +52,9 @@ void ChatServer::start()
 //连接时的回调
 void ChatServer::onConnection(const TcpConnectionPtr&conn)
 {
-  if(conn->connected())
+  if(!conn->connected())
   {
-    LOG_INFO<<"有连接到来";
-    
-  }
-  else
-  {
-    cout<<"连接断开"<<endl;
+    ChatService::GetInstance()->clientCloseException(conn);
   }
 }
 

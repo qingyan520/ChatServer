@@ -40,6 +40,7 @@ class Mysql
     //负责数据的插入更新功能
     bool Update(string sql)
     {
+      mysql_query(_conn,"set names utf8");
       if(mysql_query(_conn,sql.c_str()))
       {
         LOG_WARN<<__FILE__<<":"<<__LINE__<<":"<<sql<<": Update fail!";
@@ -52,6 +53,7 @@ class Mysql
     //主要负责数据的查询，返回到MYSQL_RES这个结构体变量当中
     MYSQL_RES*Query(string sql)
     {
+      mysql_query(_conn,"set names utf8");
       if(mysql_query(_conn,sql.c_str()))
       {
         LOG_WARN<<__FILE__<<":"<<__LINE__<<":"<<sql<<": Query fail";

@@ -9,7 +9,7 @@ class UserModel
     {
       //1.拼接sql语句
       char sql[1024]={0};
-      sprintf(sql,"insert into User(name,password,state) values(%s,%s,%s);",user.GetName().c_str(),user.GetPwd().c_str(),user.Getstate().c_str());
+      sprintf(sql,"insert into User(name,password,state) values('%s','%s','%s');",user.GetName().c_str(),user.GetPwd().c_str(),user.Getstate().c_str());
       Mysql mysql;
       if(mysql.Connect())
       {

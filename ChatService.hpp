@@ -96,7 +96,7 @@ void ChatService::Login(const TcpConnectionPtr&conn,json*js,Timestamp time)
 
   
   User user=_userModel.query(id);
-  LOG_INFO<<"数据库解析------"<<"id:"<<user.GetId()<<"pwd:"<<user.GetPwd();
+  LOG_INFO<<"数据库解析------"<<"id:"<<user.GetId()<<"name:"<<user.GetName()<<"pwd:"<<user.GetPwd();
   if(id!=-1&&id==user.GetId()&&pwd==user.GetPwd())
   {
     //该用户已经在别的地方登录了
@@ -199,12 +199,12 @@ void ChatService::clientCloseException(const TcpConnectionPtr&conn)
         break;
       }
     }
-
-    //跟新用户信息
-    if(user.GetId()!=-1)
-    {
-      user.SetState("offline");
-      _userModel.updateState(user);
-    }
   }
+ //跟新用户信息
+ if(user.GetId()!=-1)
+ {
+   user.SetState("offline");
+   _userModel.updateState(user);
+ }
+  
 }
