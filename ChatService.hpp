@@ -10,6 +10,7 @@
 #include<muduo/base/Logging.h>
 #include"UserModel.hpp"
 #include"OfflineMsgModel.hpp"
+#include"FriendModel.hpp"
 #include"json.hpp"
 #include"Public.hpp"
 using namespace std;
@@ -41,6 +42,10 @@ class ChatService
   //点对点聊天
   void OneChat(const TcpConnectionPtr&conn,json*js,Timestamp time);
 
+  //添加好友业务
+  void addFriend(const TcpConnectionPtr&conn,json*js,Timestamp tiem);
+
+
   //处理客户端异常退出
   void clientCloseException(const TcpConnectionPtr&conn);
 
@@ -58,6 +63,7 @@ class ChatService
 
   UserModel _userModel;//负责数据库的增删
   OffMsgModel _offMsgModel;//负责离线消息的加入与删除
+  FriendModel _friendModel;//负责添加好友的类
 
   unordered_map<int,TcpConnectionPtr>_userConnMap;//存储用户的连接信息
 
@@ -136,6 +142,24 @@ void ChatService::Login(const TcpConnectionPtr&conn,json*js,Timestamp time)
           //添加消息之后将其从离线消息表中删除
           response["OfflineMsg"]=msg;
           _offMsgModel.remove(id);
+        }
+
+
+        //查询用户的好友信息并返回
+        vector<User>userVec=_friendModel.query(id);
+        if(!userVec.empty())
+        {
+          vector<string>vec2;
+          for(User&user:userVec)
+          {
+            json js;
+            js["id"]=user.GetId();
+            js["name"]=user.GetName();
+            js["state"]=user.Getstate();
+
+            vec2.push_back(js.dump());
+          }
+          response["friend"]=vec2;
         }
 
         conn->send(response.dump());
@@ -222,6 +246,15 @@ void ChatService::clientCloseException(const TcpConnectionPtr&conn)
    _userModel.updateState(user);
  }
   
+}
+
+
+//添加好友业务
+void ChatService::addFriend(const TcpConnectionPtr&conn,json*js,Timestamp time)
+{
+  int userid(*js)["id"].get<int>();
+  int friendid(*js)["friendid"].get<int>();
+  _friendModel.insert(userid,friendid);
 }
 
 
