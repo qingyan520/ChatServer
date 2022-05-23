@@ -12,7 +12,7 @@ int main()
   signal(SIGINT,handler);
 
   EventLoop loop;
-  InetAddress addr("172.16.47.167 ",8080);
+  InetAddress addr("172.16.47.167 ",8081);
   ChatServer server(&loop,addr,"ChatServer");
   server.start();
   loop.loop();

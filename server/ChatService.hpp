@@ -154,7 +154,7 @@ void ChatService::Login(const TcpConnectionPtr&conn,json*js,Timestamp time)
         _userModel.updateState(user);
         json response;
         response["msgid"]=LOGIN_MSG_ACK;
-        response["errno"]=0;
+        response["error"]=0;
         response["id"]=user.GetId();
         response["name"]=user.GetName();
         
