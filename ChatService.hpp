@@ -11,6 +11,7 @@
 #include"UserModel.hpp"
 #include"OfflineMsgModel.hpp"
 #include"FriendModel.hpp"
+#include"GroupModel.hpp"
 #include"json.hpp"
 #include"Public.hpp"
 using namespace std;
@@ -33,18 +34,26 @@ class ChatService
     return &single;
   }
 
-  //登录
+  //1.登录
   void Login(const TcpConnectionPtr&conn,json*js,Timestamp time);
 
-  //注册
+  //2.注册
   void Reg(const TcpConnectionPtr&conn,json*js,Timestamp time);
 
-  //点对点聊天
-  void OneChat(const TcpConnectionPtr&conn,json*js,Timestamp time);
+  //3.点对点聊天
+  void oneChat(const TcpConnectionPtr&conn,json*js,Timestamp time);
 
-  //添加好友业务
+  //4.添加好友业务
   void addFriend(const TcpConnectionPtr&conn,json*js,Timestamp tiem);
 
+  //5.创建群业务
+  void createGroup(const TcpConnectionPtr&conn,json*js,Timestamp time);
+    
+  //6.加入群聊业务
+  void addGroup(const TcpConnectionPtr&conn,json*js,Timestamp time);
+
+  //7.群聊业务
+  void chatGroup(const TcpConnectionPtr&conn,json*js,Timestamp time);
 
   //处理客户端异常退出
   void clientCloseException(const TcpConnectionPtr&conn);
@@ -64,6 +73,7 @@ class ChatService
   UserModel _userModel;//负责数据库的增删
   OffMsgModel _offMsgModel;//负责离线消息的加入与删除
   FriendModel _friendModel;//负责添加好友的类
+  GroupModel _groupModel;//负责群创建、加入群聊等功能
 
   unordered_map<int,TcpConnectionPtr>_userConnMap;//存储用户的连接信息
 
@@ -82,7 +92,19 @@ ChatService::ChatService()
   _HandlerMap.insert({REG_MSG,std::bind(&ChatService::Reg,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
 
   //3.注册聊天回调
-  _HandlerMap.insert({ONE_CHAT_MSG,std::bind(&ChatService::OneChat,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
+  _HandlerMap.insert({ONE_CHAT_MSG,std::bind(&ChatService::oneChat,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
+
+  //4.添加好友回调
+  _HandlerMap.insert({ADD_FRIEND_MSG,std::bind(&ChatService::addFriend,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
+
+  //5.创建群回调
+  _HandlerMap.insert({CREATE_GROUP_MSG,std::bind(&ChatService::createGroup,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
+
+  //6.加入群聊回调
+  _HandlerMap.insert({ADD_GROUP_MSG,std::bind(&ChatService::addGroup,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
+
+  //7.群聊回调
+  _HandlerMap.insert({GROUP_CHAT_MSG,std::bind(&ChatService::chatGroup,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3)});
 }
 
 //得到每一个消息对应的回调函数
@@ -205,7 +227,7 @@ void ChatService::Reg(const TcpConnectionPtr&conn,json*js,Timestamp time)
 }
 
 //联系
-void ChatService::OneChat(const TcpConnectionPtr&conn,json*js,Timestamp time)
+void ChatService::oneChat(const TcpConnectionPtr&conn,json*js,Timestamp time)
 {
   int toid=(*js)["to"].get<int>();
   {
@@ -252,8 +274,8 @@ void ChatService::clientCloseException(const TcpConnectionPtr&conn)
 //添加好友业务
 void ChatService::addFriend(const TcpConnectionPtr&conn,json*js,Timestamp time)
 {
-  int userid(*js)["id"].get<int>();
-  int friendid(*js)["friendid"].get<int>();
+  int userid=(*js)["id"].get<int>();
+  int friendid=(*js)["friendid"].get<int>();
   _friendModel.insert(userid,friendid);
 }
 
@@ -263,5 +285,56 @@ void ChatService::addFriend(const TcpConnectionPtr&conn,json*js,Timestamp time)
 void ChatService::reset()
 {
     _userModel.updateAllState();
+}
+
+//创建群业务
+void ChatService::createGroup(const TcpConnectionPtr&conn,json*js,Timestamp time)
+{
+  int userid=(*js)["id"].get<int>();
+  string groupname=(*js)["groupname"];
+  string groupdesc=(*js)["groupdesc"];
+  Group group(-1,groupname,groupdesc);
+  if(_groupModel.createGroup(group))
+  {
+    _groupModel.addGroup(userid,group.GetId(),"creator");
+  }
+}
+
+
+
+//加入群聊业务
+void ChatService::addGroup(const TcpConnectionPtr&conn,json*js,Timestamp time)
+{
+  int userid=(*js)["id"].get<int>();
+  int groupid=(*js)["groupid"].get<int>();
+  _groupModel.addGroup(userid,groupid,"normal");
+}
+
+
+
+//群聊业务
+void ChatService::chatGroup(const TcpConnectionPtr&conn,json*js,Timestamp time)
+{
+  int userid=(*js)["id"].get<int>();
+  int groupid=(*js)["groupid"].get<int>();
+  
+  //得到在同一个组里面的其他人的id
+  vector<int>vecid=_groupModel.queryGroupUsers(userid,groupid);
+  lock_guard<mutex>lock(_connMutex);
+
+  for(auto e:vecid)
+  {
+    auto it=_userConnMap.find(e);
+    if(it!=_userConnMap.end())
+    {
+      //发送消息
+      it->second->send((*js).dump());
+    }
+    else
+    {
+      //目标不在线，存储离线消息，等待上线后发送
+      _offMsgModel.insert(e,(*js).dump());
+    }
+  }
 }
 

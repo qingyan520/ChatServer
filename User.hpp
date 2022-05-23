@@ -54,7 +54,7 @@ class User
       return this->_state;
     }
 
-  private:
+  protected:
     int _id;
     string _name;
     string _password;
