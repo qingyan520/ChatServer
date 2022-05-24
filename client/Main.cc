@@ -83,7 +83,7 @@ void login(int clientfd)
   cout<<"==========欢迎来到登录界面=========="<<endl;
   
   //输入登录账号和密码
-  int id=0;
+  unsigned long long int id=0;
   char pwd[100]={0};
   cout<<"请输入账号:"<<endl;
   cin>>id;
@@ -98,17 +98,16 @@ void login(int clientfd)
   js["password"]=pwd;
 
   string request=js.dump();
-  cout<<request<<endl;
   send(clientfd,request.c_str(),request.size(),0);
-  cout<<"发送成功"<<endl;
+
   //阻塞等待登录响应信息
   char recvbuf[1024000]={0};
-  recv(clientfd,recvbuf,1024,0);
-  cout<<recvbuf<<endl;
+  recv(clientfd,recvbuf,1024000,0);
+
   json response=json::parse(recvbuf);
-  cout<<response<<endl;
+
   int error_number=response["error"].get<int>();
-    cout<<error_number<<endl;
+
   if(error_number==0)
   {
     //登录成功
@@ -129,7 +128,7 @@ void login(int clientfd)
         g_currentUserFriendList.push_back(user);
       }
     }
-
+    cout<<"===============登录成功============="<<endl;
     //查看是否有离线消息
   }
   else
@@ -158,7 +157,7 @@ void regist(int clientfd)
     char pwd[100]={0};
     cout<<"请输入昵称:";
     cin.getline(name,100);
-    cout<<"请输入密码:"<<endl;
+    cout<<"请输入密码:";
     cin.getline(pwd,100);
 
     json js;
@@ -181,14 +180,15 @@ void regist(int clientfd)
     //错误消息返回0，代表注册成功
     if(errnoid==0)
     {
-      cout<<"==========注册成功============"<<endl;
+      cout<<"================注册成功=================="<<endl;
       cout<<"请记住您的账号和密码:"<<endl;
       cout<<"账号:"<<response["id"]<<endl;
       cout<<"密码:"<<pwd<<endl;
+      cout<<"==========请返回登录界面进行登录=========="<<endl;
     }
     else
     {
-      cout<<"=========注册失败============"<<endl;
+      cout<<"==============注册失败================="<<endl;
       cout<<"该昵称已经被使用，请重新输入昵称"<<endl;
     }
 
@@ -206,7 +206,7 @@ int main()
     {
       menu();
       cout<<"请输入对应选项:"<<endl;
-      int choice=0;
+      unsigned long long int choice=0;
       cin>>choice;
       cin.get();
 
@@ -226,7 +226,5 @@ int main()
           break;
       }
     }
-
-
-
+    return 0;
 }

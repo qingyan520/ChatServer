@@ -20,7 +20,7 @@ class OffMsgModel
     void remove(int id)
     {
       char sql[1024]={0};
-      sprintf(sql,"delete from OfflineMessafe where userid=%d;",id);
+      sprintf(sql,"delete from OfflineMessage where userid=%d;",id);
       Mysql mysql;
       if(mysql.Connect())
       {
@@ -33,7 +33,7 @@ class OffMsgModel
     vector<string> query(int userid)
     {
       char sql[1024]={0};
-      sprintf(sql,"select message from OfflineMessge where id='%d';",userid);
+      sprintf(sql,"select message from OfflineMessage where id='%d';",userid);
       vector<string>vec;
       Mysql mysql;
       if(mysql.Connect())

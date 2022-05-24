@@ -126,9 +126,10 @@ void ChatService::Login(const TcpConnectionPtr&conn,json*js,Timestamp time)
 {
   int id=(*js)["id"].get<int>();
   string pwd=(*js)["password"];
-
+  cout<<"id="<<id<<" "<<"pwd="<<pwd<<endl;
   
   User user=_userModel.query(id);
+  cout<<"User.id"<<user.GetId()<<"User.name"<<user.GetName()<<endl;
   LOG_INFO<<"数据库解析------"<<"id:"<<user.GetId()<<"name:"<<user.GetName()<<"pwd:"<<user.GetPwd();
   if(id!=-1&&id==user.GetId()&&pwd==user.GetPwd())
   {
@@ -194,6 +195,7 @@ void ChatService::Login(const TcpConnectionPtr&conn,json*js,Timestamp time)
     response["msgid"]=LOGIN_MSG_ACK;
     response["error"]=1;
     response["errmsg"]="账号或密码错误！";
+    cout<<response.dump()<<endl;
     conn->send(response.dump());
   }
 }

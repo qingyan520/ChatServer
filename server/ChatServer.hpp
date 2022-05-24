@@ -64,8 +64,14 @@ void ChatServer::onMessage(const TcpConnectionPtr&conn,Buffer*buffer,Timestamp t
 {
   string buf=buffer->retrieveAllAsString();
   json js=json::parse(buf);
+  cout<<js<<endl;
+  
+  int msgid=-1;
+  if(js.contains("msgid"))
+  {
+      msgid=js["msgid"].get<int>();
+  }
   cout<<js["msgid"].get<int>()<<endl;
-  int msgid=js["msgid"].get<int>();
   auto Handler=ChatService::GetInstance()->GetHandler(msgid);
   Handler(conn,&js,time);
 }

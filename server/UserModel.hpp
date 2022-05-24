@@ -36,11 +36,15 @@ class UserModel
            if(ret!=nullptr)
            {
              MYSQL_ROW row=mysql_fetch_row(ret);
-            
-             user.SetId(atoi(row[0]));
-             user.SetName(row[1]);
-             user.SetPwd(row[2]);
-             user.SetState(row[3]);
+              
+             if(row!=nullptr)
+             {
+                user.SetId(atoi(row[0]));
+                user.SetName(row[1]);
+                user.SetPwd(row[2]);
+                user.SetState(row[3]);
+             }
+             mysql_free_result(ret);
            }
         }
         return user;
