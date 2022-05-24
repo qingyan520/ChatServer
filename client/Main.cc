@@ -38,7 +38,7 @@ void readTaskHandler(int clientfd);
 string getCurrentTime();
 
 //主聊天页面程序
-void mainMenu();
+void mainMenu(int clientfd);
 
 //显示当前登录成功用户的基本信息
 void showCurrentUserDate();
@@ -128,8 +128,22 @@ void login(int clientfd)
         g_currentUserFriendList.push_back(user);
       }
     }
-    cout<<"===============登录成功============="<<endl;
+    
+    //查看群组列表
+    
     //查看是否有离线消息
+    
+
+    //显示自己的id,name,
+    //显示群组信息
+    //显示好友信息
+    
+    //线程分离，创建一个专门用来读的线程读取服务器发送回来的内容
+    thread ReadThread(readTaskHandler,clientfd);
+    ReadThread.detach();
+    //进入聊天客户端的主页面
+    mainMenu(clientfd);
+    
   }
   else
   {
@@ -227,4 +241,306 @@ int main()
       }
     }
     return 0;
+}
+
+
+
+//读线程，专门负责进行读取内容
+void readTaskHandler(int clientfd)
+{
+  while(1)
+  {
+    char buf[1024000]={0};
+    int len=recv(clientfd,buf,1024000,0);
+    if(len<0)
+    {
+      exit(-1);
+      cerr<<"子线程读取出错！！！"<<endl;
+    }
+
+    json js=json::parse(buf);
+    int msgid=js["msgid"].get<int>();
+    
+    if(msgid==ONE_CHAT_MSG)
+    {
+      cout <<"[收到一个个人消息]"<< js["time"].get<string>() << " [" << js["id"] << "]" << js["name"].get<string>()
+                 << " said: " << js["msg"].get<string>() << endl;
+            continue;
+    }
+    else if(msgid==GROUP_CHAT_MSG)
+    {
+      cout<<"[收到一个群消息]"<<"["<<js["time"]<<"][来自群:"<<js["groupname"]<<"]"<<"[群id:"<<js["groupid"]<<"]"<<"[发送者id:"<<js["id"]<<"]"<<"[name:"<<js["name"]<<"] msg:"<<js["msg"]<<endl;
+      continue;
+    }
+    else
+    {
+      cout<<js<<endl;
+    }
+    
+
+  }
+}
+
+//帮助界面
+void help(int fd=0,string str="");
+//一对一聊天
+void chat(int ,string);
+//添加好友
+void addfriend(int,string);
+//创建群组
+void creategroup(int,string);
+//群组聊天
+void groupchat(int,string);
+//添加群组
+void addgroup(int,string);
+//注销登录
+void loginout(int,string)
+{
+
+}
+
+//系统支持的客户端命令列表
+unordered_map<string,string>commandMap={
+  {"help","显示所有支持的命令，格式help"},
+  {"chat","一对一聊天，格式chat:friendid:message"},
+  {"addfriend","添加好友，格式addfriend:friendid"},
+  {"creategroup","创建群组，格式creategroup:groupname,groupdesc"},
+  {"addgroup","加入群组，格式addgroup:groupid"},
+  {"groupchat","群聊，格式groupchat:groupid:message"},
+  {"loginout","注销，格式loginout"}
+};
+
+
+// 注册系统支持的客户端命令处理
+unordered_map<string, function<void(int, string)>> commandHandlerMap = {
+    {"help", help},
+    {"chat", chat},
+    {"addfriend", addfriend},
+    {"creategroup", creategroup},
+    {"addgroup", addgroup},
+    {"groupchat", groupchat},
+    {"loginout", loginout}
+};
+
+
+
+
+
+
+void mainMenu(int clientfd)
+{
+   help();
+   while(1)
+   {
+      cout<<"请输入对应命令:"<<endl;
+      string commandbuf;
+      cin>>commandbuf;
+      cin.get();
+      string command;
+      //找到第一个：进行分割
+      int idx=commandbuf.find(":");
+      if(-1==idx)
+      {
+        command=commandbuf;
+      }
+      else
+      {
+        command=commandbuf.substr(0,idx);
+      }
+      
+      auto it=commandHandlerMap.find(command);
+      if(it==commandHandlerMap.end())
+      {
+        cerr<<"命令输入错误，请重新输入"<<endl;
+        continue;
+      }
+      it->second(clientfd,commandbuf.substr(idx+1));
+   }
+}
+
+
+void help(int,string)
+{
+  cout<<"命令列表>>>"<<endl;
+
+  for(auto e:commandMap)
+  {
+    cout<<e.first<<":"<<e.second<<endl;
+  }
+  cout<<endl;
+}
+
+
+
+
+//一对一聊天
+void chat(int clientfd,string str)
+{
+    //再次判断输入是否正确
+    int idx=str.find(":");
+    if(idx==-1)
+    {
+      cerr<<"======命令格式错误，请重新输入======"<<endl;
+      return ;
+    }
+    
+    int friendid=atoi(str.substr(0,idx).c_str());
+    if(friendid==0)
+    {
+      cerr<<"======命令格式错误，请重新输入======"<<endl;
+    }
+    string msg=str.substr(idx+1);
+    json js;
+    js["msgid"]=ONE_CHAT_MSG;
+    js["id"]=g_currnetUser.GetId();
+    js["name"]=g_currnetUser.GetName();
+    js["toid"]=friendid;
+    js["msg"]=msg;
+    js["time"]=getCurrentTime();
+
+    string buffer=js.dump();
+    cout<<buffer<<endl;
+    int len=send(clientfd,buffer.c_str(),buffer.size(),0);
+    if(-1==len)
+    {
+      cerr<<"send chat msg error";
+    }
+}
+
+
+//添加好友
+void addfriend(int clientfd,string str)
+{
+  
+  int friendid=atoi(str.c_str());
+  if(friendid==0)
+  {
+    cerr<<"======命令参数错误，请重新输入======"<<endl;
+    return;
+  }
+
+  json js;
+  js["msgid"]=ADD_FRIEND_MSG;
+  js["id"]=g_currnetUser.GetId();
+  js["friendid"]=friendid;
+
+  string buffer=js.dump();
+
+  int len=send(clientfd,buffer.c_str(),buffer.size(),0);
+  if(len<0)
+  {
+    cerr<<"send add_friend_msg error"<<endl;
+  }
+}
+
+//创建群组
+void creategroup(int clientfd,string str)
+{
+  int idx=str.find(":");
+  if(idx==-1)
+  {
+    cerr<<"======命令格式错误，请重新输入======"<<endl;
+    return;
+  }
+  string groupname=str.substr(0,idx);
+  string groupdesc=str.substr(idx+1);
+
+  json js;
+  js["id"]=g_currnetUser.GetId();
+  js["groupdesc"]=groupdesc;
+  js["groupname"]=groupname;
+  js["msgid"]=CREATE_GROUP_MSG;
+
+  string buffer=js.dump();
+  int len=send(clientfd,buffer.c_str(),buffer.size(),0);
+  if(len<0)
+  {
+    cerr<<"send create_group_msg error"<<endl;
+  }
+}
+
+
+//加入群组业务
+void addgroup(int clientfd,string str)
+{
+  int idx=str.find(":");
+  if(idx==-1)
+  {
+    cerr<<"======命令格式错误，请重新输入======"<<endl;
+    return;
+  }
+  int groupid=atoi(str.substr(0,idx).c_str());
+  if(groupid==0)
+  {
+    cerr<<"======命令格式错误，请重新输入======"<<endl;
+    return;
+  }
+  json js;
+  js["msgid"]=ADD_GROUP_MSG;
+  js["groupid"]=groupid;
+  js["id"]=g_currnetUser.GetId();
+
+
+  string buffer=js.dump();
+  int len=send(clientfd,buffer.c_str(),buffer.size(),0);
+  if(len<0)
+  {
+    cerr<<"send add_group_msg error"<<endl;
+  }
+}
+
+
+//群组聊天功能
+void groupchat(int clientfd,string str)
+{
+  int idx=str.find(":");
+  if(idx==-1)
+  {
+    cerr<<"======命令输入错误，请重新输入======"<<endl;
+    return;
+  }
+
+  int groupid=atoi(str.substr(0,idx).c_str());
+  if(groupid==0)
+  {
+    cerr<<"======命令输入错误，请重新输入======"<<endl;
+    return;
+  }
+  string msg=str.substr(idx+1);
+
+  json js;
+  js["id"]=g_currnetUser.GetId();
+  js["name"]=g_currnetUser.GetName();
+  js["groupid"]=groupid;
+  js["msg"]=msg;
+  js["time"]=getCurrentTime();
+  js["msgid"]=GROUP_CHAT_MSG;
+
+
+  string buffer=js.dump();
+  int len=send(clientfd,buffer.c_str(),buffer.size(),0);
+  if(len<0)
+  {
+    cerr<<"send group_chat_msg error"<<endl;
+  }
+}
+
+
+
+
+
+
+
+
+
+// 获取系统时间（聊天信息需要添加时间信息）
+string getCurrentTime()
+{
+    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    struct tm *ptm = localtime(&tt);
+    char date[60] = {0};
+    sprintf(date, "%d-%02d-%02d %02d:%02d:%02d",
+            (int)ptm->tm_year + 1900, (int)ptm->tm_mon + 1, (int)ptm->tm_mday,
+            (int)ptm->tm_hour, (int)ptm->tm_min, (int)ptm->tm_sec);
+    return std::string(date);
 }

@@ -17,6 +17,9 @@ class GroupModel
 
     //根据指定的groupid查询群组用户id列表，出userid自己，主要用户群聊业务给群组内其它成员发消息
     inline vector<int>queryGroupUsers(int userid,int groupid);
+
+    //根据群组id查找群名称，方便后续进行打印
+    inline string getGroupName(int groupid);
 };
 
 inline bool GroupModel::createGroup(Group&group)
@@ -132,3 +135,24 @@ inline vector<int>GroupModel::queryGroupUsers(int userid,int groupid)
   return vec;
 }
 
+//根据群id查找群名称，方便后续打印
+inline string GroupModel::getGroupName(int groupid)
+{
+  char sql[1024]={0};
+  sprintf(sql,"select groupname from AllGroup where id=%d;",groupid);
+  string str="未知群名";
+  Mysql mysql;
+  if(mysql.Connect())
+  {
+    MYSQL_RES*ret=mysql.Query(sql);
+    if(ret!=NULL)
+    {
+        MYSQL_ROW row=mysql_fetch_row(ret);
+        if(row!=nullptr)
+        {
+          str=row[0];
+        }
+    }
+  }
+  return str;
+}

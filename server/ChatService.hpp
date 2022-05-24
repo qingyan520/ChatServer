@@ -231,7 +231,7 @@ void ChatService::Reg(const TcpConnectionPtr&conn,json*js,Timestamp time)
 //联系
 void ChatService::oneChat(const TcpConnectionPtr&conn,json*js,Timestamp time)
 {
-  int toid=(*js)["to"].get<int>();
+  int toid=(*js)["toid"].get<int>();
   {
     lock_guard<mutex>lock(_connMutex);
     auto it=_userConnMap.find(toid);
@@ -319,9 +319,13 @@ void ChatService::chatGroup(const TcpConnectionPtr&conn,json*js,Timestamp time)
 {
   int userid=(*js)["id"].get<int>();
   int groupid=(*js)["groupid"].get<int>();
-  
+
   //得到在同一个组里面的其他人的id
   vector<int>vecid=_groupModel.queryGroupUsers(userid,groupid);
+  //得到群名称
+  string groupname=_groupModel.getGroupName(groupid);
+  (*js)["groupname"]=groupname;
+
   lock_guard<mutex>lock(_connMutex);
 
   for(auto e:vecid)
